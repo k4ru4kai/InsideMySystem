@@ -24,9 +24,9 @@ const CAMERA_PRESETS = {
   duration: 1.2,
   },
   CLICK_RAM: {
-    position: { x: 1.2, y: 1.85, z: 1.35 },
-    target: { x: -0.05, y: 1.42, z: -0.08 },
-    duration: 1.2,
+  position: { x: -8.870, y: -0.991, z: 10.901 },
+  target: { x: -7.117, y: -1.598, z: 3.514 },
+  duration: 1.2,
   },
   CLICK_FANS: {
   position: { x: -1.392, y: -4.757, z: 14.529 },

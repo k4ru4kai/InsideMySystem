@@ -2,6 +2,19 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const CLICK_LAYER = 1;
+const FAN_CONFIGS = [
+  { name: 'FAN_ROT_Y_1', axis: 'y' },
+  { name: 'FAN_ROT_Y_2', axis: 'y' },
+  { name: 'FAN_ROT_Y_3', axis: 'y' },
+  {name: 'FAN_ROT_Z_1',axis: 'z'},
+  {name: 'FAN_ROT_Z_2',axis: 'z'},
+  {name: 'FAN_ROT_Z_3',axis: 'z'},
+  { name: 'FAN_ROT_Z_4', axis: 'z' },
+  { name: 'FAN_ROT_Z_5', axis: 'z' },
+  { name: 'FAN_ROT_Z_6', axis: 'z' },
+];
+const FAN_TARGET_SPEED = 18;
+const FAN_ACCELERATION = 6;
 
 const SECTION_BY_OBJECT = {
   CLICK_DUMMY: {
@@ -39,6 +52,9 @@ export default class PortfolioModel {
     this.scene = experience.scene;
     this.loadingScreen = document.querySelector('#loading-screen');
     this.clickTargets = [];
+    this.fanRotors = [];
+    this.fanEnabled = true;
+    this.fanCurrentSpeed = 0;
     this.loadedModel = null;
 
     this.setPlaceholder();
@@ -93,7 +109,7 @@ export default class PortfolioModel {
     const loader = new GLTFLoader();
 
     loader.load(
-      '/models/portfolio_case.glb',
+      '/models/portfolio_case_fan_animation.glb',
       (gltf) => {
         this.loadedModel = gltf.scene;
         this.scene.add(this.loadedModel);
@@ -104,6 +120,30 @@ export default class PortfolioModel {
             this.setupClickTarget(object);
           } else if (object.isMesh) {
             this.setupVisibleMesh(object);
+          }
+        });
+
+        FAN_CONFIGS.forEach((config) => {
+          const configuredObject = this.loadedModel.getObjectByName(config.name);
+          let containsMesh = false;
+
+          configuredObject?.traverse((object) => {
+            containsMesh ||= object.isMesh;
+          });
+
+          const rotorObject = containsMesh
+            ? configuredObject
+            : config.fallbackName
+              ? this.loadedModel.getObjectByName(config.fallbackName)
+              : null;
+
+          if (rotorObject) {
+            this.fanRotors.push({
+              object: rotorObject,
+              axis: config.axis,
+            });
+          } else {
+            console.warn(`[FAN MISSING] ${config.name}`);
           }
         });
 
@@ -154,10 +194,34 @@ export default class PortfolioModel {
     this.loadingScreen?.classList.add('hidden');
   }
 
-  update() {
+  toggleFans() {
+    this.fanEnabled = !this.fanEnabled;
+  }
+
+  update(delta) {
     if (this.placeholderDummy) {
       this.placeholderDummy.rotation.y += 0.01;
     }
+
+    const deltaTime = Math.min(delta, 100) / 1000;
+    const targetSpeed = this.fanEnabled ? FAN_TARGET_SPEED : 0;
+    const speedStep = FAN_ACCELERATION * deltaTime;
+
+    if (this.fanCurrentSpeed < targetSpeed) {
+      this.fanCurrentSpeed = Math.min(
+        this.fanCurrentSpeed + speedStep,
+        targetSpeed
+      );
+    } else if (this.fanCurrentSpeed > targetSpeed) {
+      this.fanCurrentSpeed = Math.max(
+        this.fanCurrentSpeed - speedStep,
+        targetSpeed
+      );
+    }
+
+    this.fanRotors.forEach((fan) => {
+      fan.object.rotation[fan.axis] += this.fanCurrentSpeed * deltaTime;
+    });
   }
 }
 
